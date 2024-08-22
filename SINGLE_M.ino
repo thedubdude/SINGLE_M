@@ -68,13 +68,13 @@ byte G_Hall_sync = 0;  // set to 0 to prevent Hall syncing...useful for Test pur
 byte SERIAL_MON = 1;   // set to 1 for serial monitor...  will cause streaking if enabled, 2=FFT serial monitor
 byte G_TEST = 0; //13, set to TEST number to execute...if >0 , calls DO_TEST() vs. PRODUCTION#  t56
 byte G_skip_SCROLL_TEXT = 0;  // set to 1 to skip SCROLL_TEXT commands
-int G_forced_show = 0;  //19 if set to >0 then the SHOW_HANDLER will only play the show number given by G_forced_show...usful for creating new shows: NEGATIVE numbers will allow show to continue after the forced show
+int G_forced_show = 0;  //21 if set to >0 then the SHOW_HANDLER will only play the show number given by G_forced_show...usful for creating new shows: NEGATIVE numbers will allow show to continue after the forced show
 byte G_forced_production = 0; //2 if set to >0 then the PRODUCTION_HANDLER will only play the PRODUCTION given by G_forced_production...usful for creating new PRODUCTIONS, negative number not allowed
 #define DEFAULT_PRODUCTION 1 // specify which PRODUCTION starts: 1=original, 2=cylindrical coordinates, 3=FFT show, 4=beat detector 
 int G_force_sound_productions = 0;  // set to 1 to force PRODUCTIONS that utilize SOUND, set to -1 to exclude SOUND productions, set to 0 to let SOUND trigger SOUND productions
 int G_FORCE_HEAD_COM = 0;  //-1  ** For TESTING only: set to 1 to force HEAD COM signal HIGH, set to -1 to make sure it never goes HIGH, 0=normal operation
 
-byte G_GUI = 3;  // sets which GUI is being used   ... default is GUI3
+byte G_GUI = 4;  // sets which GUI is being used   ... default is GUI3
 byte DC_ON = 0; // set to 1 to turn on DON COM
 byte G_enable_GUI_generator = 0;  // 1=generte GUI when BT connected; 0=don't generate GUI
 
@@ -1383,7 +1383,11 @@ void loop()
 	Serial.println(G_forced_production);
 	//Serial.print(F("G_sampling_period_us= "));
 	//Serial.println(G_sampling_period_us);
+	Serial.print(F("G_forced_show="));
+	Serial.println(G_forced_show);
 	Serial.println("");
+
+	
 
 	///// **** TEST ONLY **** //////////
 	//G_dim = 253;   /// for TEST ONLY
@@ -1598,24 +1602,25 @@ void loop()
 
 
 				//if (G_force_sound_productions == 0)  // allow for SOUND detect to trigger SOUND productions
-				if (G_force_sound_productions != -1)  // allow for SOUND detect to trigger SOUND productions, note: -1 will exclude sound production
-				{
+				//if (G_force_sound_productions != -1)  // allow for SOUND detect to trigger SOUND productions, note: -1 will exclude sound production
+				//{
 					G_force_sound_productions = 1;  // do sound productions
 
 					previous_show_num = G_show_num;  // allow for return to previous show if SOUND goes away  
-					G_show_num = 0;  // restart shows
+					//G_show_num = 0;  // restart shows  commented out 8/26/24
 
 					if (G_production < FIRST_SOUND_PRODUCTION)
 					{
 						previous_production = G_production;
 						G_production = FIRST_SOUND_PRODUCTION; // set to start of SOUND productions
+						G_show_num = 0;  //restart shows if starting sound productions
 					}
 					//else
 					//{
 					//	previous_production = 0;  // there is no production 0
 					//}
 
-				}
+				//}
 			}
 
 			Serial.println("");
@@ -1693,6 +1698,8 @@ void loop()
 		Serial.println(G_force_sound_productions);
 		Serial.print(F("allow="));
 		Serial.println(allow);
+		Serial.print(F("G_forced_show= "));
+		Serial.println(G_forced_show);
 		Serial.println(F(""));
 
 		G_sound_detected_flag = 0;
@@ -10096,6 +10103,11 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		for (int bounces = 0; bounces < 2; ++bounces)
 		{
 
+			if (1 == CHECK_BLUE_TOOTH())  // check blue tooth
+			{
+				BLUE_TOOTH_COMMAND_HANDLER(1);
+			}
+			
 			for (int hue_cycle = 0; hue_cycle < MAX_HUES; ++hue_cycle)
 			{
 				xe = 21;
@@ -10159,7 +10171,12 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 		}
 
-		BT_DELAY(5000);
+		byte bt_interrupt = BT_DELAY(5000);
+
+		if (1 == bt_interrupt)  // check blue tooth
+		{
+			BLUE_TOOTH_COMMAND_HANDLER(1);
+		}
 
 
 		FastLED.clear();
@@ -10191,14 +10208,28 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 					//FastLED.clear();
 					ZIG_ZAG(xe, ys, xe, ye, peaks, amplitude, hue); // generate a zig zag given the axis, amplitude and number of peaks
 					SHOW_slow();
-					BT_DELAY(50);
+					bt_interrupt = BT_DELAY(50);
+
+					if (1 == bt_interrupt)  // check blue tooth
+					{
+						BLUE_TOOTH_COMMAND_HANDLER(1);
+					}
+
 
 					//	--peaks;
 					if (peaks < 1) { peaks = 1; }
 
 				}
 
-				if (hue_cycle == 0) { BT_DELAY(1500); }  // hold the first image a bit longer
+				if (hue_cycle == 0) 
+				{
+					bt_interrupt = BT_DELAY(1500); // hold the first image a bit longer
+				
+					if (1 == bt_interrupt)  // check blue tooth
+					{
+						BLUE_TOOTH_COMMAND_HANDLER(1);
+					}
+				}  
 			}
 		}
 		//BT_DELAY(5000);
@@ -10357,7 +10388,12 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 					TWEEN(image_kind, number_of_images, total_increments, increment, 2000, 1);
 
 					SHOW_slow();
-					BT_DELAY(time_between_frames);
+					byte bt_interrupt = BT_DELAY(time_between_frames);
+
+					if (1 == bt_interrupt)  // check blue tooth
+					{
+						BLUE_TOOTH_COMMAND_HANDLER(1);
+					}
 
 					if (G_interceeded_flag == 1)  // next show forced so exit
 					{
@@ -10377,7 +10413,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 					TWEEN(image_kind, number_of_images, total_increments, increment, 2000, -1);
 
 					SHOW_slow();
-					BT_DELAY(time_between_frames);
+					byte bt_interrupt = BT_DELAY(time_between_frames);
+
+					if (1 == bt_interrupt)  // check blue tooth
+					{
+						BLUE_TOOTH_COMMAND_HANDLER(1);
+					}
+
 
 					if (G_interceeded_flag == 1)  // next show forced so exit
 					{
@@ -10520,7 +10562,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 2000, 1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+				
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -10540,7 +10588,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 2000, -1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -10680,7 +10734,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 2000, 1);  // image 0 to image 1
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -10783,7 +10843,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 2000, 1);  // image 0 to image 1
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -10984,7 +11050,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 1000, 1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11007,7 +11079,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 1000, -1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11067,7 +11145,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 1000, 1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11085,7 +11169,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, 1000, -1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11277,7 +11367,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, STARTING_IMAGE_HUE, 1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11300,7 +11396,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, ENDING_IMAGE_HUE, -1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
 
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
@@ -11468,7 +11570,15 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				TWEEN(image_kind, number_of_images, total_increments, increment, STARTING_IMAGE_HUE, 1);
 
 				SHOW_slow();
-				BT_DELAY(time_between_frames);
+				byte bt_interrupt = BT_DELAY(time_between_frames);
+
+				if (1 == bt_interrupt)  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
+
+
+
 				if (G_interceeded_flag == 1)  // next show forced so exit
 				{
 					break;
@@ -11644,7 +11754,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		//Serial.print(F("G_sampling_period_us= "));
 		//Serial.println(G_sampling_period_us);
 
-		BT_DELAY(5000);
+		byte bt_interrupt = BT_DELAY(5000);
+
+		if (1 == bt_interrupt)  // check blue tooth
+		{
+			BLUE_TOOTH_COMMAND_HANDLER(1);
+		}
+
 
 		//Serial.println(F("++++++PROD2: show 17 : position 4"));
 		//Serial.print(F("G_sampling_period_us= "));
@@ -12204,9 +12320,10 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		//show_num = 9;    // THIS IS FOR YOUTUBE VIDEO ONLY
 	}
 
-	/////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////  IMPRINT SHOWs START  //////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////  IMPRINT SHOWs START  //////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if (show_num == 19)
+	if (show_num == 19)   /// IMPRINT SHOW
 	{
 
 		//G_dim = 0;
@@ -12254,6 +12371,11 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				SPACE
 
 					static byte print_once_flag = 1;
+
+				if (1 == CHECK_BLUE_TOOTH())  // check blue tooth
+				{
+					BLUE_TOOTH_COMMAND_HANDLER(1);
+				}
 
 
 				FastLED.clear();
@@ -12527,7 +12649,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		int brightness_percentage = 100; // This is the percentage dimmer or brighter the IMPRINT will be relative to the current display brightness, 100=current brightness
 		byte tween_kind = 4; 
 
-		byte bounce_cycles = 40;
+		byte bounce_cycles = 60;
 
 		static byte initizlize_once_flag = 1;  // will be set to 0 after initialization 
 
@@ -12724,6 +12846,13 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 			//printD("P2S19: bounce="), bounce);
 			//SPACE
 
+		
+
+			if (1 == CHECK_BLUE_TOOTH())  // check blue tooth
+			{
+				BLUE_TOOTH_COMMAND_HANDLER(1);
+			}
+
 			if (bounce % 11 == 0)
 			{
 				direction = -1 * direction;
@@ -12856,6 +12985,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 				
 				//SHOW_slow(window);
 				FastLED.show();  // no dimming
+
 				delay(1000);
 
 			}
@@ -12905,6 +13035,416 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 
 	}
+
+
+	//	SHOW 21  to be done next
+
+//	SHOW 21  to be done next////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//	if (show_num == 21)   ////HUE IMPRINT show 3: not exists in MURG_PC 08/23/24:  Experimental HUE IMPRINT STROBE  ,,,,,DON, NEED TO WORK ON 
+//	{
+//
+//		Serial.println(F("++++++PROD2: show 20 : start"));
+//
+//		/////used for IMPRINT_SHOW function  /////
+//		byte IMPRINT_ONLY = 0;  // set to 1 to only show IMPRINT,   set to  0 to only show IMPRINT and IMAGE
+//
+//		byte imp = 1; // type of imprint to use
+//		byte imp_show = 8;  // defines which IMPRINT_SHOW to execute
+//		int hue_start = 0;  // sets the starting hue of the hue imprint
+//		int hue_end = 0;  // sets the ending hue of the hue imprint
+//		byte total_cycles = 10; // sets the duration of HUE cycling of a given show, hue transitions from hue_start to hue_end during this cycle
+//		byte delta_per_cycle = 3;  // each IMPRINT_SHOW utilizes a shape (ex. a line, or FILL_HOZ), this defines how far each instance of the shape moves per cycle
+//		byte num_instances = 8;  // number of instances of the shape used to hue imprint
+//		byte distance_between_instances = 4; // each IMPRINT_SHOW utilizes a shape (ex. a line, or FILL_HOZ), this defines the distance between repeats of the shape
+//		byte fill_depth = 1; // number of lines filled when using FILL_HOZ or FILL_VERT function in some of the shows, 0=1 line
+//		static byte reset_imprint_show = 0; // set to 1 to restore a given IMPRINT_SHOW back to cycle=0;
+//		int brightness_percentage = 100; // This is the percentage dimmer or brighter the IMPRINT will be relative to the current display brightness, 100=current brightness
+//		byte tween_kind = 4;
+//
+//		byte bounce_cycles = 40;
+//
+//		static byte initizlize_once_flag = 1;  // will be set to 0 after initialization 
+//
+//		if (IMPRINT_ONLY == 0)  // SKIP for now, use IMPRINT
+//		{
+//
+//			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//			///////////////********************************* 1st generate IMAGE to use imprint on ************************************ /////////////////////////
+//			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//			FastLED.clear();
+//			//FastLED.show();
+//
+//	// image_kind= 0 use stored image kind,  1 for LINE, 2=circle, 
+//	// 3=rectangle, 4= triangle, 5=HOZ_V no XY swap, 6=HOZ_V with XY swap, 7=ZIG_ZAG, 8=spikes
+//
+//
+//			TWEEN_IMAGE_START[0].IMAGE_KIND = tween_kind;  // line
+//			TWEEN_IMAGE_START[0].XS = 0;  // center
+//			TWEEN_IMAGE_START[0].YS = 11;
+//			TWEEN_IMAGE_START[0].XE = 0;   // radius
+//			TWEEN_IMAGE_START[0].YE = 21;
+//			TWEEN_IMAGE_START[0].HUE = 85;
+//			TWEEN_IMAGE_START[0].DATA1 = 1;   // not used
+//			TWEEN_IMAGE_START[0].DATA2 = 2;  // not used
+//			TWEEN_IMAGE_START[0].DATA3 = 0;  // not used
+//
+//
+//			TWEEN_IMAGE_END[0].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_END[0].XS = 0;
+//			TWEEN_IMAGE_END[0].YS = 11;  // 10
+//			TWEEN_IMAGE_END[0].XE = 21; // radius
+//			TWEEN_IMAGE_END[0].YE = 21;
+//			TWEEN_IMAGE_END[0].HUE = 171;
+//			TWEEN_IMAGE_END[0].DATA1 = 3;   // not used
+//			TWEEN_IMAGE_END[0].DATA2 = 6;  // amplitude
+//			TWEEN_IMAGE_END[0].DATA3 = 0;  // amplitude
+//
+//			////////////////
+//
+//
+//			TWEEN_IMAGE_START[1].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_START[1].XS = 0;
+//			TWEEN_IMAGE_START[1].YS = 10;
+//			TWEEN_IMAGE_START[1].XE = 0;
+//			TWEEN_IMAGE_START[1].YE = 0;
+//			TWEEN_IMAGE_START[1].HUE = 171;
+//			TWEEN_IMAGE_START[1].DATA1 = 0;
+//			TWEEN_IMAGE_START[1].DATA2 = 0;
+//			TWEEN_IMAGE_START[1].DATA3 = 0;
+//
+//			TWEEN_IMAGE_END[1].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_END[1].XS = 0;  //0
+//			TWEEN_IMAGE_END[1].YS = 10;  //21
+//			TWEEN_IMAGE_END[1].XE = 21;  //21
+//			TWEEN_IMAGE_END[1].YE = 0;  //1
+//			TWEEN_IMAGE_END[1].HUE = 0;
+//			TWEEN_IMAGE_END[1].DATA1 = 0;   // peaks  // not used
+//			TWEEN_IMAGE_END[1].DATA2 = 0;  // amplitude  // not used
+//			TWEEN_IMAGE_END[1].DATA3 = 0;  // spike color yello
+//
+//			//////////////////////
+//
+//			TWEEN_IMAGE_START[2].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_START[2].XS = 0;
+//			TWEEN_IMAGE_START[2].YS = 11;
+//			TWEEN_IMAGE_START[2].XE = 21;
+//			TWEEN_IMAGE_START[2].YE = 11;
+//			TWEEN_IMAGE_START[2].HUE = 171;
+//			TWEEN_IMAGE_START[2].DATA1 = 0;
+//			TWEEN_IMAGE_START[2].DATA2 = 0;
+//			TWEEN_IMAGE_START[2].DATA3 = 0;
+//
+//
+//			TWEEN_IMAGE_END[2].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_END[2].XS = 0;  //0
+//			TWEEN_IMAGE_END[2].YS = 11;  //21
+//			TWEEN_IMAGE_END[2].XE = 0;  //21
+//			TWEEN_IMAGE_END[2].YE = 11;  //1
+//			TWEEN_IMAGE_END[2].HUE = 0;
+//			TWEEN_IMAGE_END[2].DATA1 = 0;   // peaks  // not used
+//			TWEEN_IMAGE_END[2].DATA2 = 0;  // amplitude  // not used
+//			TWEEN_IMAGE_END[2].DATA3 = 0;  // spike color yellow  // not used
+//
+//			////////////////////////////
+//
+//			TWEEN_IMAGE_START[3].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_START[3].XS = 0;
+//			TWEEN_IMAGE_START[3].YS = 10;
+//			TWEEN_IMAGE_START[3].XE = 21;
+//			TWEEN_IMAGE_START[3].YE = 10;
+//			TWEEN_IMAGE_START[3].HUE = 171;
+//			TWEEN_IMAGE_START[3].DATA1 = 0;
+//			TWEEN_IMAGE_START[3].DATA2 = 0;
+//			TWEEN_IMAGE_START[3].DATA3 = 0;
+//
+//
+//			TWEEN_IMAGE_END[3].IMAGE_KIND = tween_kind;  //line
+//			TWEEN_IMAGE_END[3].XS = 0;  //0
+//			TWEEN_IMAGE_END[3].YS = 10;  //21
+//			TWEEN_IMAGE_END[3].XE = 0;  //21
+//			TWEEN_IMAGE_END[3].YE = 10;  //1
+//			TWEEN_IMAGE_END[3].HUE = 0;
+//			TWEEN_IMAGE_END[3].DATA1 = 0;   // peaks  // not used
+//			TWEEN_IMAGE_END[3].DATA2 = 0;  // amplitude  // not used
+//			TWEEN_IMAGE_END[3].DATA3 = 0;  // spike color yellow  // not used
+//
+//			/////////////////////////
+//
+//
+//		}
+//
+//		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//		///////////////////////////// NOW generate IMPRINT_SHOW  //////////////////////////////////////////////////////////////////////////////////////////////
+//		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//				// note: if VALUES[0]==1 then REPORT VALUES[#] to serial monitor
+//				//VALUES = {0, imp_show, hue_start, hue_end, total_cycles, delta_per_cycle, num_instances, distance_between_instances, fill_depth, brightness_percentage, reset_imprint_show, imp  };
+//
+//				// *********  IMPRINT methods: V11  *************
+//		// method =1: hue the imprint screen replaces hue of active screen pixels: IHUE
+//		// method =2: XOR the buffer onto  the active screen pixels: IXOR
+//		// method =3: AND the buffer and  the active screen pixels, leave buffer pixles: IAND_BUFFER  (i.e. leave the overlap buffer region with the buffer color)
+//		// method =4: AND the buffer and  the active screen pixels, leave screen pixles: IAND_SCREEN (i.e. leave the overlap buffer region with the screen pixles color)
+//		// method =5  AND the buffer and the active screen pixels, EXCLUDE the AND'd region from the active screen pixels (i.e. cut out the buffer region)
+//
+//
+//				// ********* IMPRINT SHOWS: V1 *****************
+//		//if (imp_show == 1)  // verticle moving HOZ fill lines
+//		//if (imp_show == 2)  // horizontal moving VERT fill lines
+//		//if (imp_show == 3)  // stationary checker board
+//		//if (imp_show == 4)  // vertical HUE gradient
+//		//if (imp_show == 5)  // horizontal HUE gradient
+//		//if (imp_show== 6)  //MIDDLE vertical HUE gradient
+//		//if (imp_show == 7)  // UP and down trianle , hue varies with cycle : DON-->>need to add the changine HUE with cycle
+//
+//
+//		if (initizlize_once_flag == 1)
+//		{
+//			initizlize_once_flag = 0;
+//
+//			VALUES[1] = imp_show;
+//			VALUES[2] = hue_start;
+//			VALUES[3] = hue_end;
+//			VALUES[4] = total_cycles;
+//			VALUES[5] = delta_per_cycle;
+//			VALUES[6] = num_instances;
+//			VALUES[7] = distance_between_instances;
+//			VALUES[8] = fill_depth;
+//			VALUES[9] = brightness_percentage;
+//			VALUES[10] = reset_imprint_show;
+//
+//			VALUES[11] = imp;
+//			VALUES[12] = IMPRINT_ONLY;
+//		}
+//		else  // use previously initialized values
+//		{
+//
+//			imp_show = VALUES[1];
+//			hue_start = VALUES[2];
+//			hue_end = VALUES[3];
+//			total_cycles = VALUES[4];
+//			delta_per_cycle = VALUES[5];
+//			num_instances = VALUES[6];
+//			distance_between_instances = VALUES[7];
+//			fill_depth = VALUES[8];
+//			brightness_percentage = VALUES[9];
+//			reset_imprint_show = VALUES[10];
+//
+//			imp = VALUES[11];
+//			IMPRINT_ONLY = VALUES[12];
+//
+//		}
+//
+//
+//		//int VALUES[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+//
+//		//IMPRINT_SHOW(byte imp, int hue_start, int hue_end, byte total_cycles, byte DELTA_PER_CYCLE, byte NUMBER_OF_INSTANCES, byte DISTANCE_BETWEEN_INSTANCES, byte FILL_DEPTH, float brightness_percentage, byte reset)
+//		//IMPRINT_SHOW(imp_show, hue_start, hue_end, total_cycles, delta_per_cycle, num_instances, distance_between_instances, fill_depth, dimming_imp,  reset_imprint_show);
+//
+//		//byte hue_start_array[5] = { 0, 42,85,171,255 };
+//		//byte hue_end_array[5] = { 255, 128, 171 ,213 ,0 };
+//		//byte hue_index = 0;
+//
+//		///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//		////////////////////  BOUNCE  IMPRINTS /////////////////////////////////////////////////////////////////////////////////////////////////
+//		///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//		//HALL_SYNC2();
+//
+//		int direction = 1;
+//
+//		for (byte bounce = 0; bounce < bounce_cycles; ++bounce)  // number of times to execute show
+//		{
+//			//printD("P2S19: bounce="), bounce);
+//			//SPACE
+// 
+		 //if (1 == CHECK_BLUE_TOOTH())  // check blue tooth
+			//{
+			//	BLUE_TOOTH_COMMAND_HANDLER(1);
+			//}
+//
+//			if (bounce % 11 == 0)
+//			{
+//				direction = -1 * direction;
+//			}
+//
+//			FastLED.clear();
+//			//////////////////////////////////// TWEEN  ////////////////////////////////
+//			TWEEN(0, 3, 11, bounce % 11, 171, direction);
+//
+//			DIM_SLOW_LEDS(G_dim);  // dim SLOW leds
+//			SAVE_TO_BUFFER(2);  // save generated display to buffer2
+//
+//			GET_VALUES();  // read the Serial Monitor for new values of VALUES[] array
+//
+//			//// CHANGE HUE every 10th bounce
+//			//if (0 == bounce % 10)
+//			//{
+//			//	VALUES[2] = hue_start_array[hue_index];   // hue_start
+//			//	VALUES[3] = hue_end_array[hue_index];    // hue_end
+//
+//			//	++hue_index;
+//			//	if (hue_index >= 5) { hue_index = 0; }
+//
+//			//	reset_imprint_show = 1; 
+//			//}
+//
+//			//// modify imprint_show
+//			//if (0 == bounce % 2)  
+//			//{
+//			//	VALUES[1] = 4;  // imprint_show...vertical hue
+//			//}
+//			//else
+//			//{
+//			//	VALUES[1] = 5;  // hoz hue
+//			//}
+//
+//			if (G_interceeded_flag == 1)  // next show forced so exit
+//			{
+//				break;
+//			}
+//
+//
+//
+//
+//			/// INITIALIZATION of IMPRINT_SHOW
+//			//imp_show = 6;
+//			//num_instances = 8;  //8
+//			//distance_between_instances = 3;
+//			//fill_depth = 1;  //0
+//			//hue_start = 0;
+//			//hue_end = 255;
+//			//total_cycles = 10; //10
+//			//delta_per_cycle = 3;  //3, each IMPRINT_SHOW utilizes a shape (ex. a line, or FILL_HOZ), this defines how far each instance of the shape moves per cycle
+//
+//
+//			////////////********************************
+//			//imp = 1;   // TEST ONLY to fix the imprint being used, otherwise they will cycle through all imprint types
+//			////////////********************************
+//
+//
+//			////////////********************************
+//			//brightness_percentage = brightness_percentage + 20;  // change brightness of IMPRINT from 50% to 150% of the present display brightness
+//
+//			//if (brightness_percentage > 150) { brightness_percentage = 50; }
+//
+//			//brightness_percentage = 100;  // set imprint brightness the same as image brightness
+//
+//			////////////********************************
+//
+//
+//			///////////// TEST ONLY  ///////////////
+//			//G_dim = 250;
+//			//brightness_percentage = 500;
+//
+//			/////////////////////////////////////////
+//
+//
+//			////////////////////////////////*********  IMPRINT_SHOW ********* /////////////////////////////////////
+//
+//			//VALUES[1] = (bounce % 7) + 1;  //modify imp_show 7 possible values
+//
+//
+//
+//			if (VALUES[0] == 1)  // REPORT
+//			{
+//
+//				// report imprint values
+//				REPORT_VALUES();
+//
+//				VALUES[0] = 0;  // only update once
+//			}
+//
+//			imp_show = VALUES[1];
+//			hue_start = VALUES[2];
+//			hue_end = VALUES[3];
+//			total_cycles = VALUES[4];
+//			delta_per_cycle = VALUES[5];
+//			num_instances = VALUES[6];
+//			distance_between_instances = VALUES[7];
+//			fill_depth = VALUES[8];
+//			brightness_percentage = VALUES[9];
+//			reset_imprint_show = VALUES[10];
+//
+//			imp = VALUES[11];
+//
+//			//SPACE
+//			//printD("hue_start= "), hue_start );
+//			//printD("hue_end= "), hue_end );
+//			//SPACE
+//
+//
+//			//%%%%%%%%%%%%%%%%%%%%%%%%%%%  IMPRINT_SHOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//			// note: IMPRINT is saved to BUFFER1
+//			reset_imprint_show = IMPRINT_SHOW(imp_show, hue_start, hue_end, total_cycles, delta_per_cycle, num_instances, distance_between_instances, fill_depth, brightness_percentage, reset_imprint_show);
+//			//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//
+//
+//			//reset = 0;
+//
+//			//IMPRINT_SHOW(1, 0);
+//
+//			///////////// for viewing IMPRINT alone  ///////////////////////////////////////
+//
+//
+//			if (IMPRINT_ONLY == 1) // allow for showing the IMPRINT
+//			{
+//
+//				FastLED.clear();
+//				LOAD_FROM_BUFFER(1); // where imprint is stored
+//
+//				//SHOW_slow(window);
+//				FastLED.show();  // no dimming
+//				delay(1000);
+//
+//			}
+//
+//			///////////////////////////////////////////////////////////////////////////
+//
+//#define DELAY_SEPERATION 30
+//
+//			if (IMPRINT_ONLY == 0) // allow for showing the IMPRINT
+//			{
+//
+//				LOAD_FROM_BUFFER(2);  // load back non-imprinted display
+//				//DIM_SLOW_LEDS(G_dim);  // dim SLOW leds
+//
+//				IMPRINT(imp);
+//
+//				FastLED.show();  // no dimming
+//				//delay(DELAY_SEPERATION);
+//
+//				//FastLED.clear();
+//				//FastLED.show();  // no dimming
+//				//delay(2*DELAY_SEPERATION);
+//
+//				//LOAD_FROM_BUFFER(2); // where main image is stored
+//
+//				//FastLED.show();  // no dimming
+//				//delay(DELAY_SEPERATION);
+//				//
+//				//// final image is cleared
+//				//FastLED.clear();
+//				//FastLED.show();  // no dimming
+//				//delay(2*DELAY_SEPERATION);
+//
+//				//++imp;  // global at level of main
+//
+//				//if (imp > 5)
+//				//{
+//				//	imp = 1;
+//				//}
+//
+//				VALUES[11] = imp;
+//
+//
+//			}
+//
+//		}
+//
+//
+//	}
+
 
 
 	/////////////////////////////////////////  end of PRODUCTION_2 shows  /////////////////////////////////////////////////////////////
@@ -19857,6 +20397,9 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 			// statements
 			break;
 		}
+		
+		 
+		//G_forced_show = G_next_show;  // don consider this change
 
 		G_forced_show = 0;
 		MODIFY_GUI4(4);  // turn off SHOW LOCK switch
@@ -21063,6 +21606,11 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 		G_forced_show = G_show_num;
 		//G_GUI = 4;
 		MODIFY_GUI4(3);
+	
+		SPACE
+		printD("SHOW LOCK COMMAND"), 0);
+		printD("G_forced_show="), G_forced_show);
+		SPACE
 
 	}
 
@@ -23071,7 +23619,7 @@ void GUI3()  // SIMPLIEST GUI
 	SerialBT.println("add_text(18,11,medium,L,PROD=,245,240,245,)");
 	SerialBT.println("add_text(19,10,medium,R,6,245,240,245,!)");
 	SerialBT.println("add_text(19,11,medium,L,1,245,240,245,I)");
-	SerialBT.println("add_text(23,12,large,L,GUI,245,240,245,)");
+	SerialBT.println("add_text(23,12,large,L,GUI3,245,240,245,)");
 	SerialBT.println("add_text(21,5,large,L,BE HAPPY,245,240,245,)");
 	SerialBT.println("add_text(18,12,large,L,BRIGHTNESS ,245,240,245,)");
 	SerialBT.println("add_text(21,12,small,L,MAX,245,240,245,)");
@@ -25134,8 +25682,8 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 			//Serial.println(G_RESET);
 			Serial.print(F("G_CREATE_mode= "));
 			Serial.println(G_CREATE_mode);
-			//Serial.print(F("G_interceeded_flag= "));
-			//Serial.println(G_interceeded_flag);
+			Serial.print(F("G_interceeded_flag= "));
+			Serial.println(G_interceeded_flag);
 			//Serial.print(F("G_next_show_in_series= "));
 			//Serial.println(G_next_show_in_series);
 			Serial.print(F("G_production= "));
@@ -25164,10 +25712,10 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 					++G_show_num;
 					show_num = G_show_num;
 
-					//Serial.println("");
-					//Serial.print(F("incrementing: G_show_num= "));
-					//Serial.println(G_show_num);
-					//Serial.println("");
+					Serial.println("");
+					Serial.print(F("incrementing: G_show_num= "));
+					Serial.println(G_show_num);
+					Serial.println("");
 
 				}
 				else
@@ -40131,6 +40679,9 @@ void COME_HITHER_SHOW()  // this show is displayed when (1 == DETECT_BASE_COMMUN
 /////////////////////////////////////////////////////////////////////////////
 void MIC_ON_OFF(byte on)  // 1 will turn on MICROPHOHE, 0 will turn off MICROPHONE if it is ON
 {
+	
+	
+	
 	if ((on == 0) && (G_MIC_ON_flag == 1))  // turn MIC off
 	{
 		G_force_sound_productions = -1;  // disallow sound productions
@@ -40167,9 +40718,11 @@ void MIC_ON_OFF(byte on)  // 1 will turn on MICROPHOHE, 0 will turn off MICROPHO
 
 
 		}
+
+		
 	}
 
-	if ((on == 1) && (G_MIC_ON_flag == 0))  // turn MIC on if it was on previously
+	if ((on == 1) && (G_MIC_ON_flag == 0))  // turn MIC on if it was off previously
 	{
 
 		//if (G_MIC_ON_flag == 1)
@@ -40178,7 +40731,7 @@ void MIC_ON_OFF(byte on)  // 1 will turn on MICROPHOHE, 0 will turn off MICROPHO
 			G_MIC_ON_flag = 1;
 		//}
 
-
+			
 	}
 
 
@@ -41183,9 +41736,9 @@ byte IMPRINT_SHOW(byte imp_show, int hue_start, int hue_end, byte total_cycles, 
 
 #define HUE_INCREMENT 255/total_cycles
 
-	printD("EXECUTING IMPRINT_SHOW: cycle="), cycle);
-	printD("  imprint show ="), imp_show);
-	SPACE
+	//printD("EXECUTING IMPRINT_SHOW: cycle="), cycle);
+	//printD("  imprint show ="), imp_show);
+	//SPACE
 
 
 
