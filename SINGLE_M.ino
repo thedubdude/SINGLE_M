@@ -64,7 +64,7 @@ byte G_MURG = 3; //values: 1 or 2  or 3:  set Murgetroid being programmed...need
 // 1=newest head (spinning processor); 2=first head (spinning processor); ;   3=TEST BASE stationary processor
 // previously 2
 
-byte G_Hall_sync = 1;  // set to 0 to prevent Hall syncing...useful for Test purpose, set to 1 for Hall syncing
+byte G_Hall_sync = 0;  // set to 0 to prevent Hall syncing...useful for Test purpose, set to 1 for Hall syncing
 byte SERIAL_MON = 1;   // set to 1 for serial monitor...  will cause streaking if enabled, 2=FFT serial monitor
 byte G_TEST = 0; //13, set to TEST number to execute...if >0 , calls DO_TEST() vs. PRODUCTION#  t56
 byte G_skip_SCROLL_TEXT = 0;  // set to 1 to skip SCROLL_TEXT commands
@@ -475,7 +475,7 @@ byte G_start_next_production_flag = 0;  // set to 1 to force G_next_production t
 int G_next_show = 1; // used in GUI4 for choosing which SHOW to LOAD
 int G_number_of_shows = 0; // used to display the FINAL SHOW in GUI4
 byte G_MIC_ON_flag = 1;  // equals 1 if MIC is on, 0 if off
-byte G_MIC_ENABLE_switch_state_flag = 1;  // equals 1 if MIC switch is on, 0 if MIC switch is off
+//byte G_MIC_ENABLE_switch_state_flag = 1;  // equals 1 if MIC switch is on, 0 if MIC switch is off
 
 byte  G_Hall_sync_original = G_Hall_sync;  // holds previous  G_Hall_sync value before DETECT_BASE_and_COME_HITHER() sets G_Hall_sync=0 
 int G_force_sound_productions_original = G_force_sound_productions;  // holds previous G_force_sound_productions as HEAD COM can modify G_force_sound_productions
@@ -1546,7 +1546,7 @@ void loop()
 		/////////////////////
 
 
-		if ((G_force_sound_productions != -1) && (G_TEST == 0) && (G_CREATE_mode == 0)) // execute unless SOUND productions are not allowed, not in CREATE mode
+		if ((G_force_sound_productions != -1) && (G_TEST == 0) && (G_CREATE_mode == 0) && ( G_MIC_ON_flag ==1)) // execute unless SOUND productions are not allowed, not in CREATE mode
 		{
 			//Serial.println(F("** loop(): position 1a **"));
 			//Serial.print(F("G_sampling_period_us= "));
@@ -1559,7 +1559,11 @@ void loop()
 			//music_detect = MUSIC_DETECT(50);
 			music_detect = MUSIC_DETECT(MUSIC_DETECTION_INTERVAL, MUSIC_DETECTION_COUNT);  // was 100
 
-			if (G_music_only_switch == 1) { music_detect = 1; }  // FORCE MUSIC 
+			//if (G_music_only_switch == 1) 
+			//{ 
+			//	music_detect = 1; // FORCE MUSIC 
+			//	
+			//}  
 
 			SPACE
 			Serial.print(F("MAIN LOOP   ** position 1b **:  music_detect ="));
@@ -1623,7 +1627,7 @@ void loop()
 			//if (((millis() - G_music_start_time > NO_MUSIC_TIME) && (G_production >= FIRST_SOUND_PRODUCTION) && (G_production <= LAST_SOUND_PRODUCTION)) && (G_forced_production != 0)) // no sound detected so return to previous shows, sound productions are >2
 
 			// check if need to exit SOUND productions
-			if (((millis() - G_music_start_time > NO_MUSIC_TIME) && (G_production >= FIRST_SOUND_PRODUCTION) && (G_production <= LAST_SOUND_PRODUCTION)) && (G_forced_production == 0)) // no sound detected so return to previous shows, sound productions are >2
+			if (((millis() - G_music_start_time > NO_MUSIC_TIME) && (G_production >= FIRST_SOUND_PRODUCTION) && (G_production <= LAST_SOUND_PRODUCTION)) && (G_forced_production == 0)&&((G_music_only_switch ==0))) // no sound detected so return to previous shows, sound productions are >2
 			{
 
 				G_force_sound_productions = 0; // set to 1 to force PRODUCTIONS that utilize SOUND, set to -1 to exclude SOUND productions, set to 0 to let SOUND trigger SOUND productions
@@ -19729,6 +19733,8 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 	if ((G_BT_command == 'z') && (G_BT_command2 == 'z') && (G_BT_command3 == 'r'))   // GUI4 turn ON MUSIC only mode   zzr
 	{
 		G_music_only_switch = 1;
+		MIC_ON_OFF(1);  // turn on MIC
+		MODIFY_GUI4(8);  // turn on MIC switch
 	}
 
 
@@ -19810,18 +19816,16 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 	if ((G_BT_command == 'z') && (G_BT_command2 == 'z') && (G_BT_command3 == 'n'))   // MIC enable OFF GUI4  zzn
 	{
-		G_MIC_ENABLE_switch_state_flag = 0;  // equals 1 if MIC switch is on, 0 if MIC switch is off
 
 		MIC_ON_OFF(0); // turn mic off
-
+		G_music_only_switch = 0;
+		MODIFY_GUI4(21);  // turn off MUSIC ONLY switch
 	}
 
 
 
 	if ((G_BT_command == 'z') && (G_BT_command2 == 'z') && (G_BT_command3 == 'm'))   // MIC enable ON GUI4   zzm
 	{
-		G_MIC_ENABLE_switch_state_flag = 1;  // equals 1 if MIC switch is on, 0 if MIC switch is off
-
 
 		MIC_ON_OFF(1); // turn mic ON
 
@@ -19893,7 +19897,8 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 		if (G_production >= FIRST_SOUND_PRODUCTION)  // sound production
 		{
-			MODIFY_GUI4(8);  // set to MIC to enable
+			//MODIFY_GUI4(8);  // set to MIC to enable
+			MIC_ON_OFF(1);
 			G_force_sound_productions = 1;  // enable sound productions
 		}
 		else
@@ -19934,83 +19939,9 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 	if ((G_BT_command == 'z') && (G_BT_command2 == 'z') && (G_BT_command3 == 'j'))   // REFRESH GUI4    zzj
 	{
-		G_GUI = 4;
-
-		GUI4();
-
-		//if (G_MIC_ON_flag == 0)  // MIC off 
-		//{
-		//	MODIFY_GUI4(9);  // turn off MIC_ENABLE switch
-		//}
-		//else
-		//{
-		//	MODIFY_GUI4(8);  // turn on MIC_ENABLE switch
-		//}
-
-		if (G_music_only_switch == 0)  // MUSIC ONLY MODE off 
-		{
-			MODIFY_GUI4(21);  // turn off MUSIC ONLY MOD switch
-		}
-		else
-		{
-			MODIFY_GUI4(20);  // turn on MUSIC ONLY MODE switch
-		}
-
-
-		if (G_MIC_ENABLE_switch_state_flag == 0)  // MIC off 
-		{
-			MODIFY_GUI4(9);  // turn off MIC_ENABLE switch
-		}
-		else
-		{
-			MODIFY_GUI4(8);  // turn on MIC_ENABLE switch
-		}
-
-
-		MODIFY_GUI4(17); // turn on/off MUSIC DETECT indicator
-
-		//MIC_ON_OFF(1);  // turn MIC on
-
-		G_MIC_gain = DEFAULT_MIC_gain;
-
-		MODIFY_GUI4(10);  // display MIC gain and slider position
-
-		UPDATE_PRODUCTION_NAME();
-
-		//	MODIFY_GUI4(2);  // production LOCK switch is OFF
-		//	MODIFY_GUI4(4);  // SHOW LOCK switch is OFF
-
-		if (G_GUI == 4)
-		{
-			SerialBT.print("*I");  // update GUI4 text
-			SerialBT.print(G_production);
-			SerialBT.print("*");
-
-			SerialBT.print("*!");  // update GUI4 text
-			SerialBT.print(G_show_num);
-			SerialBT.print("*");
-
-			SerialBT.print("*M");  // update GUI4 text for FINAL SHOW
-			SerialBT.print(G_number_of_shows);
-			SerialBT.print("*");
-		}
-
-		if (G_executing_CREATE_mode == 0)
-		{
-			SerialBT.print("*Loff*");  // update GUI4 text
-
-			//SerialBT.print("*L");  // update GUI4 text
-			//SerialBT.print("off");
-			//SerialBT.print("*");
-		}
-		else
-		{
-			SerialBT.print("*Lon*");  // update GUI4 text
-
-			//SerialBT.print("*L");  // update GUI4 text
-			//SerialBT.print("on");
-			//SerialBT.print("*");
-		}
+		REFRESH_GUI4();
+		
+		
 	}
 
 
@@ -21026,86 +20957,18 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 		if ((G_GUI == 3) && (skip == 0))
 		{
-			G_GUI = 4;
+			//G_GUI = 4;
 
-			GUI4();
+			//GUI4();
+
+			REFRESH_GUI4();  // set G_GUI=4 and refresh settings
 
 			delay(50);
 
-			UPDATE_PRODUCTION_NAME();
-
-			if (G_forced_production > 0)  // production LOCK switch is ON
-			{
-				MODIFY_GUI4(1);
-			}
-
-
-			if (G_forced_show > 0)  // SHOW LOCK switch is ON
-			{
-				MODIFY_GUI4(3);
-			}
-
-			MODIFY_GUI4(10);  // set MIC gain slider
-
-			if (G_MIC_ON_flag == 0)  // mic is off
-			{
-				MODIFY_GUI4(9);  // turn off MIC_ENABLE switch
-			}
-			else
-			{
-				MODIFY_GUI4(8);  // turn on MIC_ENABLE switch
-			}
-
-
-			SerialBT.print("*I");  // update GUI text
-			SerialBT.print(G_production);
-			SerialBT.print("*");
-
-			SerialBT.print("*!");  // update GUI text
-			SerialBT.print(G_show_num);
-			SerialBT.print("*");
-
-			SerialBT.print("*M");  // update GUI4 text for FINAL SHOW
-			SerialBT.print(G_number_of_shows);
-			SerialBT.print("*");
-
-
-			// update GUI4 with CREATE mode setting
-			if (G_executing_CREATE_mode == 0)
-			{
-				SerialBT.print("*Loff*");  // update GUI4 text
-
-
-				//SerialBT.print("*L");  // update GUI4 text
-				//SerialBT.print("off");
-				//SerialBT.print("*");
-			}
-			else
-			{
-				SerialBT.print("*Lon*");  // update GUI4 text
-
-				//SerialBT.print("*L");  // update GUI4 text
-				//SerialBT.print("on");
-				//SerialBT.print("*");
-			}
-
+			
 
 		}
 
-		//--G_GUI;
-
-		//if (G_GUI <= 0) { G_GUI = 3; }
-
-
-		//if (G_GUI == 1)
-		//{
-		//	G_GUI = 2;
-
-		//}
-		//else
-		//{
-		//	G_GUI = 1;
-		//}
 
 		Serial.println(F(""));
 		Serial.println(F("@@@@@@@@@@ BTCH:   GUI change command"));
@@ -21117,7 +20980,7 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 		Serial.println(G_dim);
 		Serial.println(F(""));
 
-		//RESET(1);
+	
 
 	}
 
@@ -31086,7 +30949,7 @@ void MODIFY_GUI4(byte element)  // force some GUI3 elements to be in the correct
 		SerialBT.println("clear_location(2, 4)");
 		SerialBT.println("add_switch(2,4,3,zzm@,zzn@,0,1)");
 
-		G_MIC_ENABLE_switch_state_flag = 1;
+		//G_MIC_ON_flag = 1;
 
 	}
 
@@ -31098,7 +30961,7 @@ void MODIFY_GUI4(byte element)  // force some GUI3 elements to be in the correct
 		SerialBT.println("clear_location(2, 4)");
 		SerialBT.println("add_switch(2,4,3,zzm@,zzn@,0,0)");
 
-		G_MIC_ENABLE_switch_state_flag = 0;
+		//G_MIC_ON_flag = 0;
 
 
 	}
@@ -38873,11 +38736,20 @@ byte MUSIC_DETECT(unsigned long SOUND_DETECT_INVERVAL, byte count_threshold) // 
 	static byte sound_detect_count = 0;
 	static unsigned long sound_detect_interval_start = millis();
 
+	if (G_music_only_switch == 1)
+	{
+		G_MUSIC_detected_flag = 1;
+		sound_detect_count = 1;
+		return 1;
+		
+	}
+
 	if (G_MIC_ON_flag == 0)
 	{ 
 		G_MUSIC_detected_flag = 0;
 		sound_detect_count = 0;
-		return 0; }
+		return 0; 
+	}
 
 //#define count_threshold 3 // number of counts within SOUND_DETECT_INTERVAL that when exceeded or equal returns a 1
 	
@@ -38950,89 +38822,89 @@ byte MUSIC_DETECT(unsigned long SOUND_DETECT_INVERVAL, byte count_threshold) // 
 
 }
 
-////////////////////////////////////////////////////////////////////
-byte MUSIC_DETECT_previous(unsigned long SOUND_DETECT_INVERVAL) // return a 1 if sound is detected over an interval defined by SOUND_DETECT_INVERVAL
-{
-
-	if (G_MIC_ON_flag == 0) { return 0; }
-
-#define count_threshold 2 // number of counts within SOUND_DETECT_INTERVAL that when exceeded or equal returns a 1
-	byte rv = 0;
-	byte sound_detect_count = 0;
-	unsigned long sound_detect_interval_start;
-
-	//Serial.println(F("** MD: position 0 **"));
-	//Serial.print(F("G_sampling_period_us= "));
-	//Serial.println(G_sampling_period_us);
-
-
-	if (SOUND_DETECT(SOUND_DETECT_THRESHOLD, 0) == 1)
-	{
-		//	Serial.println(F("** MD: position 1a **"));
-
-		++sound_detect_count;
-
-		if (sound_detect_count == 1) { sound_detect_interval_start = millis(); }
-
-	}
-	//	else
-	//	{
-	//		Serial.println(F("** MD: 1b **"));
-
-			//return 0;
-
-		//	rv = 0;
-	//	}
-
-		// when a sound is detected check if there is more sound within the SOUND_DETECT_INVERVAL
-
-		//Serial.println(F("** MD: position 2 **"));
-
-	if (sound_detect_count > 0)
-	{
-		while (((millis() - sound_detect_interval_start) < SOUND_DETECT_INVERVAL))  // sound detected over SOUND_DETECT_INTERVAL
-		{
-			//Serial.println(F("** MD: position 3 **"));
-
-			if (SOUND_DETECT(SOUND_DETECT_THRESHOLD, 0) == 1)
-			{
-				++sound_detect_count;
-
-				//Serial.println(F("** MD: position 4 **"));
-
-			}
-			else
-			{
-				sound_detect_count = 0;
-
-			}
-
-		}
-	}
-
-	if (sound_detect_count >= count_threshold)
-	{
-
-		rv = 1;
-		G_music_start_time = millis();  // keep track of last MUSIC detection time
-	}
-
-	//Serial.println(F("** MD: END **"));
-
-	if (rv == 1)
-	{
-		MODIFY_GUI4(11); // turn on MUSIC DETECT indicator
-
-	}
-	else
-	{
-		MODIFY_GUI4(12); // turn off MUSIC DETECT indicator
-
-	}
-
-	return rv;
-
-}
+//////////////////////////////////////////////////////////////////////
+//byte MUSIC_DETECT_previous(unsigned long SOUND_DETECT_INVERVAL) // return a 1 if sound is detected over an interval defined by SOUND_DETECT_INVERVAL
+//{
+//
+//	if (G_MIC_ON_flag == 0) { return 0; }
+//
+//#define count_threshold 2 // number of counts within SOUND_DETECT_INTERVAL that when exceeded or equal returns a 1
+//	byte rv = 0;
+//	byte sound_detect_count = 0;
+//	unsigned long sound_detect_interval_start;
+//
+//	//Serial.println(F("** MD: position 0 **"));
+//	//Serial.print(F("G_sampling_period_us= "));
+//	//Serial.println(G_sampling_period_us);
+//
+//
+//	if (SOUND_DETECT(SOUND_DETECT_THRESHOLD, 0) == 1)
+//	{
+//		//	Serial.println(F("** MD: position 1a **"));
+//
+//		++sound_detect_count;
+//
+//		if (sound_detect_count == 1) { sound_detect_interval_start = millis(); }
+//
+//	}
+//	//	else
+//	//	{
+//	//		Serial.println(F("** MD: 1b **"));
+//
+//			//return 0;
+//
+//		//	rv = 0;
+//	//	}
+//
+//		// when a sound is detected check if there is more sound within the SOUND_DETECT_INVERVAL
+//
+//		//Serial.println(F("** MD: position 2 **"));
+//
+//	if (sound_detect_count > 0)
+//	{
+//		while (((millis() - sound_detect_interval_start) < SOUND_DETECT_INVERVAL))  // sound detected over SOUND_DETECT_INTERVAL
+//		{
+//			//Serial.println(F("** MD: position 3 **"));
+//
+//			if (SOUND_DETECT(SOUND_DETECT_THRESHOLD, 0) == 1)
+//			{
+//				++sound_detect_count;
+//
+//				//Serial.println(F("** MD: position 4 **"));
+//
+//			}
+//			else
+//			{
+//				sound_detect_count = 0;
+//
+//			}
+//
+//		}
+//	}
+//
+//	if (sound_detect_count >= count_threshold)
+//	{
+//
+//		rv = 1;
+//		G_music_start_time = millis();  // keep track of last MUSIC detection time
+//	}
+//
+//	//Serial.println(F("** MD: END **"));
+//
+//	if (rv == 1)
+//	{
+//		MODIFY_GUI4(11); // turn on MUSIC DETECT indicator
+//
+//	}
+//	else
+//	{
+//		MODIFY_GUI4(12); // turn off MUSIC DETECT indicator
+//
+//	}
+//
+//	return rv;
+//
+//}
 
 /////////////////////////////////////////////////////////////////////
 byte NOTE_DETECT2(byte note, int threshold)  // decide if a "note" is detected, return 1 if note is detected
@@ -40102,7 +39974,8 @@ byte DETECT_BASE_COMMUNICATION2()  // detect if the BASE is trying to communicat
 	{
 		MODIFY_GUI4(13); // turn on HEAD COM indicator
 		Serial.println(F("%%%%%%% DETECT_BASE_COMMUNICATION: returning 1 "));
-		MIC_ON_OFF(0);  // don't allow SOUND productions if HEAD COM is HIGH
+		G_force_sound_productions = -1;   // exclude sound production
+		//MIC_ON_OFF(0);  // don't allow SOUND productions if HEAD COM is HIGH
 		G_Hall_sync = 0;  // for COME_HITHER display
 		return 1;
 	}
@@ -40110,7 +39983,8 @@ byte DETECT_BASE_COMMUNICATION2()  // detect if the BASE is trying to communicat
 	{
 		MODIFY_GUI4(14); // turn OFF HEAD COM indicator
 		Serial.println(F("%%%%%%% DETECT_BASE_COMMUNICATION: returning 0 "));
-		MIC_ON_OFF(1);  // allow SOUND productions if HEAD COM is LOW and MIC was ON prior to HEAD COM signal
+		G_force_sound_productions = G_force_sound_productions_original;
+		//MIC_ON_OFF(1);  // allow SOUND productions if HEAD COM is LOW and MIC was ON prior to HEAD COM signal
 		G_Hall_sync = G_Hall_sync_original;  // return to original value
 		return 0;
 	}
@@ -40298,11 +40172,11 @@ void MIC_ON_OFF(byte on)  // 1 will turn on MICROPHOHE, 0 will turn off MICROPHO
 	if ((on == 1) && (G_MIC_ON_flag == 0))  // turn MIC on if it was on previously
 	{
 
-		if (G_MIC_ENABLE_switch_state_flag == 1)
-		{
+		//if (G_MIC_ON_flag == 1)
+		//{
 			G_force_sound_productions = G_force_sound_productions_original;
 			G_MIC_ON_flag = 1;
-		}
+		//}
 
 
 	}
@@ -42009,6 +41883,137 @@ void GET_VALUES() {
 		 delay(3000);  // to allow time to view report
 	 
  }
+
+ //////////////////////////////////////////////////////////////////////
+
+ void REFRESH_GUI4()
+ {
+	 G_GUI = 4;
+
+	 GUI4();
+
+	 ////////////// test only  ////////////
+	 //SPACE
+	 //printD("#################   ----->  G_MIC_ON_flag= "), G_MIC_ON_flag);
+	 //SPACE
+	 //delay(2000);
+	 /////////////////////////////////////////
+
+	 //if (G_MIC_ON_flag == 0)  // MIC off 
+	 //{
+	 //	MODIFY_GUI4(9);  // turn off MIC_ENABLE switch
+	 //}
+	 //else
+	 //{
+	 //	MODIFY_GUI4(8);  // turn on MIC_ENABLE switch
+	 //}
+
+	 if (G_music_only_switch == 1)  // MUSIC ONLY MODE ON, note: default is OFF 
+	 {
+		 
+		 MODIFY_GUI4(20);  // turn on MUSIC ONLY MODE switch
+	 }
+	 else
+	 {
+		 MODIFY_GUI4(17); // turn on/off MUSIC DETECT indicator
+	 }
+
+
+
+	 if (G_MIC_ON_flag == 0)  // MIC off , note: default is ON
+	 {
+		 MODIFY_GUI4(9);  // turn off MIC_ENABLE switch
+		 MODIFY_GUI4(17); // turn on/off MUSIC DETECT indicator
+	 }
+
+
+	 //MODIFY_GUI4(17); // turn on/off MUSIC DETECT indicator
+
+
+	 //MIC_ON_OFF(1);  // turn MIC on
+
+	 G_MIC_gain = DEFAULT_MIC_gain;
+
+	 MODIFY_GUI4(10);  // display MIC gain and slider position
+
+	 UPDATE_PRODUCTION_NAME();
+
+	 //	MODIFY_GUI4(2);  // production LOCK switch is OFF
+	 //	MODIFY_GUI4(4);  // SHOW LOCK switch is OFF
+
+	 //if (G_GUI == 4)
+
+	 SerialBT.print("*I");  // update GUI4 text
+	 SerialBT.print(G_production);
+	 SerialBT.print("*");
+
+	 SerialBT.print("*!");  // update GUI4 text
+	 SerialBT.print(G_show_num);
+	 SerialBT.print("*");
+
+	 SerialBT.print("*M");  // update GUI4 text for FINAL SHOW
+	 SerialBT.print(G_number_of_shows);
+	 SerialBT.print("*");
+
+
+
+
+	 if (G_executing_CREATE_mode == 0)
+	 {
+		 SerialBT.print("*Loff*");  // update GUI4 text
+
+		 //SerialBT.print("*L");  // update GUI4 text
+		 //SerialBT.print("off");
+		 //SerialBT.print("*");
+	 }
+	 else
+	 {
+		 SerialBT.print("*Lon*");  // update GUI4 text
+
+		 //SerialBT.print("*L");  // update GUI4 text
+		 //SerialBT.print("on");
+		 //SerialBT.print("*");
+	 }
+
+	 if (G_forced_production > 0)  // production LOCK switch is ON
+	 {
+		 MODIFY_GUI4(1);
+	 }
+
+
+	 if (G_forced_show > 0)  // SHOW LOCK switch is ON
+	 {
+		 MODIFY_GUI4(3);
+	 }
+
+	 ////////
+
+
+
+
+ // update GUI4 with CREATE mode setting
+	// if (G_executing_CREATE_mode == 0)
+	if (G_CREATE_mode == 0)
+	 {
+		 SerialBT.print("*Loff*");  // update GUI4 text
+
+
+		 //SerialBT.print("*L");  // update GUI4 text
+		 //SerialBT.print("off");
+		 //SerialBT.print("*");
+	 }
+	 else
+	 {
+		 SerialBT.print("*Lon*");  // update GUI4 text
+
+		 //SerialBT.print("*L");  // update GUI4 text
+		 //SerialBT.print("on");
+		 //SerialBT.print("*");
+	 }
+
+
+ }
+
 
 ////////////////////////////  LAST FUNCTION  /////////////////////////
 void Z_LAST()
