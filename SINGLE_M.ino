@@ -64,7 +64,7 @@ byte G_MURG = 3; //values: 1 or 2  or 3:  set Murgetroid being programmed...need
 // 1=newest head (spinning processor); 2=first head (spinning processor); ;   3=TEST BASE stationary processor
 // previously 2
 
-byte G_Hall_sync = 0;  // set to 0 to prevent Hall syncing...useful for Test purpose, set to 1 for Hall syncing
+byte G_Hall_sync = 1;  // set to 0 to prevent Hall syncing...useful for Test purpose, set to 1 for Hall syncing
 byte SERIAL_MON = 1;   // set to 1 for serial monitor...  will cause streaking if enabled, 2=FFT serial monitor
 byte G_TEST = 0; //13, set to TEST number to execute...if >0 , calls DO_TEST() vs. PRODUCTION#  t56
 byte G_skip_SCROLL_TEXT = 0;  // set to 1 to skip SCROLL_TEXT commands
@@ -483,6 +483,9 @@ byte G_come_hither_flag = 0;  // set to 1 first time come hither show is needed
 float G_beat_detect_threshold;  // adjusted BEAT_DETECTOR threshold level
 float G_percentage_beat_detect_amplitude_reduction = 0; // used in to report threshold decay rate in BEAT_DETECTOR
 byte G_MUSIC_detected_flag = 0;  // will be set to 1 if MUSIC is detected
+
+byte G_come_hither_show_played_flag; // will be set to 1 if COME_HITHER show played
+byte G_not_rotating_flag = 0;  //  will be set to 1 if head not rotating
 
 #define NUMBER_OF_BEAT_SHOWS 24 // number of different non-random beat shows -1
 byte BS_enables[NUMBER_OF_BEAT_SHOWS]; // enable for BEAT_SHOWs
@@ -6924,6 +6927,7 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 	{
 
 		CAL_SPIN2(NUM_LEDS);  // find the maximum number of blanks for STAR FLOAT ... prevents flashing
+
 		for (int n = 0; n < 3; ++n)
 		{
 
@@ -6970,7 +6974,7 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 			initial_hall_count = G_Hall_counts;
 			++xe;
 
-			while (initial_hall_count == G_Hall_counts)
+			while ((initial_hall_count == G_Hall_counts)  && (G_not_rotating_flag == 0))
 			{
 				LINE(xs, 11, xe, ye, hue);
 				LINE(xs, 11, xe, 21 - ye, hue);
@@ -6992,7 +6996,7 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 	}
 
 	//////////////////////////////////
-	if ((show_num == 11) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))   //proceedural lines 
+	if ((show_num == 11) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))   //proceedural lines 
 	{
 
 
@@ -7033,7 +7037,7 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 	}
 
 	//SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-	if ((show_num == 12) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))   //  // expanding sphere with lines
+	if ((show_num == 12) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))   //  // expanding sphere with lines
 	{
 
 		//FastLED.clear();  // set to black all LEDs..
@@ -7115,7 +7119,7 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 	}
 
 	///////////////////////////////////////////////
-	if ((show_num == 14) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))   //  // expanding sphere with lines
+	if ((show_num == 14) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))   //  // expanding sphere with lines
 	{
 
 		unsigned long start_count = G_Hall_counts;
@@ -7692,8 +7696,8 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 
 
 					}
-
-					while (sync == READ_HALL_COUNTS())  // sychronize:  this catches what spin time remains after the above
+					
+					while (sync == READ_HALL_COUNTS() && (G_not_rotating_flag == 0))  // sychronize:  this catches what spin time remains after the above
 					{
 					}
 				}
@@ -8291,7 +8295,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 	////// /////////////Production 2: /////////////////////////////////////////////////////////////////////////////////
 	////// /////////////Production 2: /////////////////////////////////////////////////////////////////////////////////
-	if ((show_num == 1) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))   // stars
+	if ((show_num == 1) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))   // stars
 	{
 
 		int saved_G_dim = G_dim;
@@ -8540,7 +8544,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 	///////  SHOW 2  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	if ((show_num == 2) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // proceedural for verticle line widget
+	if ((show_num == 2) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // proceedural for verticle line widget
 	{
 #define GROUPS 3     // shape specific: note book 12/15/22 back page
 #define VERTICLE_LINES 6  // shape specific: note book 12/15/22 back page
@@ -8738,7 +8742,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 	///////  SHOW 3  ////////////////////////////////////////////////////////
 
-	if ((show_num == 3) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // proceedural for verticle line widget
+	if ((show_num == 3) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // proceedural for verticle line widget
 	{
 #define GROUPS 3     // shape specific: note book 12/15/22 back page
 #define VERTICLE_LINES 6  // shape specific: note book 12/15/22 back page...was 6
@@ -8937,7 +8941,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 	}
 
 	//////////////////////////////////////////  SHOW 4
-	if ((show_num == 4) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // proceedural for two objects rotating in different directions. 
+	if ((show_num == 4) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // proceedural for two objects rotating in different directions. 
 	{
 #define GROUPS 3     // shape specific: note book 12/15/22 back page
 #define VERTICLE_LINES 7  // shape specific: note book 12/15/22 back page
@@ -9178,7 +9182,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 	}
 
 	//////////////////////////////////////////  SHOW 5 
-	if ((show_num == 5) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // proceedural for two radial lines rotating in different directions. 
+	if ((show_num == 5) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // proceedural for two radial lines rotating in different directions. 
 	{
 
 		byte HUES[7] = { 0,85, 171, 42, 213, 128, 35 };   // red, green, blue, yellow, purple, aqua,  orangish /// + 1 ring color
@@ -9316,7 +9320,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 
 	////////////////////////////////////////
-	if ((show_num == 6) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // oddly moving outter radial lines
+	if ((show_num == 6) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // oddly moving outter radial lines
 	{
 
 #define NUMBER_OF_BOTTOM_VERTICIES 6
@@ -9442,7 +9446,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 
 	///////////////////////////////////////////////////////////////////////////////////////
-	if ((show_num == 7) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // floating cube
+	if ((show_num == 7) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // floating cube
 	{
 		byte show_loops = 100;  // number of times this show loops
 
@@ -9693,7 +9697,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 
 	////////////////////////////////////////
-	if ((show_num == 8) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // inner and outter spirals
+	if ((show_num == 8) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // inner and outter spirals
 	{
 
 #define NUMBER_OF_BOTTOM_VERTICIES 6
@@ -9891,7 +9895,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 
 	////////////////////////////////////////
-	if ((show_num == 9) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0))  // for VIDEO
+	if ((show_num == 9) && (G_Hall_sync == 1) && (digitalRead(HEAD_COM) == 0) && (G_not_rotating_flag == 0))  // for VIDEO
 	{
 
 		//	byte DEMO2SHOW = 1;   // 1 or 2
@@ -24299,7 +24303,7 @@ void RESET(int skip)  // if skip=1 then don't reset brightness, if skip=2 don't 
 	//DC_SEND();
 
 	G_continuous_SPECIAL_mode_was_ON = 0;
-
+	G_come_hither_show_played_flag = 0;
 
 	///////////////// FROM SLAVE ////////////////////////////////////////////
 
@@ -25496,10 +25500,15 @@ byte HALL_MEASURE2(int num)  // return number of blanks to prevent roll over
 					SPACE
 					printD("HALL_MEASURE2: NOT ROTATING"), 0);
 					SPACE
-				
+
+				G_not_rotating_flag = 1;
 				G_max_flashes = 12;   // arbitrary default
 				break;
 
+			}
+			else
+			{
+				G_not_rotating_flag = 0;
 			}
 		}
 	}
@@ -25646,6 +25655,8 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 	//Serial.println(G_dim);
 	//Serial.println(F(""));
 
+	
+
 	// detect if the BASE is trying to communicate with the HEAD through the A2D port and if YES then execute COME_HITHER_SHOW() until another BASE signal is received
 	DETECT_BASE_COMMUNICATION_and_COME_HITHER();
 	
@@ -25692,6 +25703,8 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 			Serial.println(G_forced_show);
 			Serial.print(F("G_show_num= "));
 			Serial.println(G_show_num);
+			Serial.print(F("G_come_hither_show_played_flag= "));
+			Serial.println(G_come_hither_show_played_flag);
 			Serial.println("");
 		}
 	}
@@ -25707,8 +25720,9 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 
 			if (G_interceeded_flag == 0)
 			{
-				if (G_repeat_show_flag == 0)
+				if ((G_repeat_show_flag == 0) && (G_come_hither_show_played_flag==0))
 				{
+					// note: don't increment show if come_hither_show_played_flag=1 as I need to start at show 1
 					++G_show_num;
 					show_num = G_show_num;
 
@@ -25721,6 +25735,7 @@ int SHOW_HANDLER(int number_of_shows)  // return the next show number
 				else
 				{
 					show_num = G_show_num;
+					G_come_hither_show_played_flag = 0;  //allow for incrementing G_show_num
 				}
 
 			}
@@ -26538,14 +26553,20 @@ void STAR_FLOAT(int ntf, int float_time, int rep, unsigned long blanks, int num_
 
 		SHOW_slow();
 
-		unsigned long ft = READ_HALL_COUNTS() + float_time;
+		int ft = READ_HALL_COUNTS() + float_time;
+		//int start_count = READ_HALL_COUNTS();
 
-
+		//unsigned long start_time_stamp = millis();
 
 
 		while (READ_HALL_COUNTS() < ft)
 		{
 
+			//if (((millis() - start_time_stamp) > 500) && (start_count == READ_HALL_COUNTS())  )  // prevent endless hang up if not spinning
+		    if (G_not_rotating_flag == 1)
+			{
+				break;
+			}
 
 
 			for (int kk = 0; kk < blanks; ++kk)   // this determines how many blanks between images
@@ -39284,18 +39305,19 @@ byte MUSIC_DETECT(unsigned long SOUND_DETECT_INVERVAL, byte count_threshold) // 
 	static byte sound_detect_count = 0;
 	static unsigned long sound_detect_interval_start = millis();
 
-	if (G_music_only_switch == 1)
-	{
-		G_MUSIC_detected_flag = 1;
-		sound_detect_count = 1;
-		return 1;
-		
-	}
+	//if (G_music_only_switch == 1)
+	//{
+	//	G_MUSIC_detected_flag = 1;
+	//	sound_detect_count = 1;
+	//	return 1;
+	//	
+	//}
 
 	if (G_MIC_ON_flag == 0)
 	{ 
 		G_MUSIC_detected_flag = 0;
 		sound_detect_count = 0;
+		MODIFY_GUI4(12); // turn off MUSIC DETECT indicator
 		return 0; 
 	}
 
@@ -39323,11 +39345,11 @@ byte MUSIC_DETECT(unsigned long SOUND_DETECT_INVERVAL, byte count_threshold) // 
 
 
 	//if (((millis() - sound_detect_interval_start) > SOUND_DETECT_INVERVAL)|| (sound_detect_count >= count_threshold))  // make MUSIC_DETECT decision
-	if (((millis() - sound_detect_interval_start) > SOUND_DETECT_INVERVAL) || (sound_detect_count >= count_threshold))  // make MUSIC_DETECT decision
+	if (((millis() - sound_detect_interval_start) > SOUND_DETECT_INVERVAL) || (sound_detect_count >= count_threshold) || (G_music_only_switch == 1))  // make MUSIC_DETECT decision
 	// return 1 if (sound_detect_count >= count_threshold) within the SOUND_DETECT_INVERVAL
 	{
 		
-		if (sound_detect_count >= count_threshold)
+		if ((sound_detect_count >= count_threshold)|| (G_music_only_switch == 1))
 		{
 			
 			G_music_start_time = millis();  // keep track of last MUSIC detection time
@@ -40546,12 +40568,15 @@ void DETECT_BASE_COMMUNICATION_and_COME_HITHER()
 // COME_HITHER_SHOW() starts when DETECT_BASE_COMMUNICATION()==1 
 // COME_HITHER_SHOW() ends when next DETECT_BASE_COMMUNICATION()==0 
 {
-	
+	byte rv = 0;  // return 1 if COME_HITHER SHOW played during the call to this function
+
 	//return;   // TEST ONLY
 	
 	Serial.println(F("++++++++++++ DETECT_BASE_COMMUNICATION_and_COME_HITHER()  +++++++++++"));
 	Serial.print(F("G_Hall_sync="));
 	Serial.println(G_Hall_sync);
+	Serial.print(F("G_show_num="));
+	Serial.println(G_show_num);
 	Serial.println("");
 
 	//Serial.println(F(""));
@@ -40622,6 +40647,10 @@ void DETECT_BASE_COMMUNICATION_and_COME_HITHER()
 			//Serial.println(F("execute COME_HITHER_SHOW()"));
 
 			COME_HITHER_SHOW();
+
+			G_come_hither_show_played_flag = 1;  // return 1 if COME_HITHER SHOW played during the call to this function
+		    // note: G_come_hither_show_played_flag will be set to 0 by SHOW_HANDLER
+			// I need to keep track if COME_HITHER show played so that I re-start the main show at show 1 not show 2
 		}
 
 		//FastLED.clear();
@@ -40638,6 +40667,8 @@ void DETECT_BASE_COMMUNICATION_and_COME_HITHER()
 
 
 	}
+
+
 
 }
 
