@@ -1,5 +1,5 @@
 /*
- modified: 5/16/24
+ modified: 8/29/24
  Name:		SINGLE_M.ino
  Created:	3/18/2024 2:41:31 PM
  Author:	Don Wile
@@ -65,7 +65,7 @@ byte G_MURG = 3; //values: 1 or 2  or 3:  set Murgetroid being programmed...need
 // previously 2
 
 byte G_Hall_sync = 1;  // set to 0 to prevent Hall syncing...useful for Test purpose, set to 1 for Hall syncing
-byte SERIAL_MON = 1;   // set to 1 for serial monitor...  will cause streaking if enabled, 2=FFT serial monitor
+byte SERIAL_MON = 0;   // set to 1 for serial monitor...  will cause streaking if enabled, 2=FFT serial monitor
 byte G_TEST = 0; //13, set to TEST number to execute...if >0 , calls DO_TEST() vs. PRODUCTION#  t56
 byte G_skip_SCROLL_TEXT = 0;  // set to 1 to skip SCROLL_TEXT commands
 int G_forced_show = 0;  //21 if set to >0 then the SHOW_HANDLER will only play the show number given by G_forced_show...usful for creating new shows: NEGATIVE numbers will allow show to continue after the forced show
@@ -1844,9 +1844,9 @@ void loop()
 				G_production = 1;
 			}
 
-			SerialBT.print("*I");  // update production number
-			SerialBT.print(G_production);
-			SerialBT.print("*");
+			//SerialBT.print("*I");  // update production number
+			//SerialBT.print(G_production);
+			//SerialBT.print("*");
 
 			UPDATE_PRODUCTION_NAME();
 
@@ -6266,6 +6266,13 @@ byte PRODUCTION_1()  // return 1 if PRODUCTION is complete
 
 	}
 
+	if (G_MUSIC_detected_flag == 1)
+	{
+		return 1;
+	}
+
+	/////////////////////////////////////
+
 
 	if (show_num == 1)
 	{
@@ -8207,6 +8214,7 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 	show_num = SHOW_HANDLER(NUMBER_OF_PRODUCTION2_SHOWS);  ////// SHOW HANDLER  ///////////
 
 
+
 	if (SERIAL_MON == 1)
 	{
 		Serial.println("");
@@ -8290,6 +8298,12 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		G_special_char_select = 1;
 		BT_and_DC_CHECKandDO();
 
+	}
+
+
+	if (G_MUSIC_detected_flag == 1)
+	{
+		return 1;
 	}
 
 
@@ -10107,6 +10121,9 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 		for (int bounces = 0; bounces < 2; ++bounces)
 		{
 
+			if (G_interceeded_flag == 1) { break; }
+
+
 			if (1 == CHECK_BLUE_TOOTH())  // check blue tooth
 			{
 				BLUE_TOOTH_COMMAND_HANDLER(1);
@@ -10198,8 +10215,12 @@ byte PRODUCTION_2()  // return 1 if PRODUCTION is complete otherwise return 0
 
 		for (int bounce = 0; bounce < 3; ++bounce)
 		{
+			if (G_interceeded_flag == 1) { break; }
+			
 			for (int hue_cycle = 0; hue_cycle < MAX_HUES; hue_cycle = hue_cycle + 2)
 			{
+				if (G_interceeded_flag == 1) { break; }
+				
 				for (byte xe = 0; xe < 22; xe = xe + jump)
 				{
 
@@ -15415,6 +15436,7 @@ byte PRODUCTION_4()   ////////////  beat detector shows
 		//Serial.print(F("$$$$$$$$$ 88: G_dim= "));
 		//Serial.println(G_dim);
 		//Serial.println(F(""));
+
 		
 		BEAT_SHOW_PRODUCTION(0);
 
@@ -15746,11 +15768,11 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 				// sd = SOUND_DETECT2(4, 0);  // threshold was 2
 				sd = SOUND_DETECT(SOUND_DETECT_THRESHOLD, 0);
 
-				Serial.print(F("%%%%--->>>> sd ="));
-				Serial.println(sd);
+				//Serial.print(F("%%%%--->>>> sd ="));
+				//Serial.println(sd);
 				//Serial.print(F("first_time_flag ="));
 			   // Serial.println(first_time_flag);
-				Serial.println(F(""));
+				//Serial.println(F(""));
 
 
 
@@ -15765,9 +15787,9 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 
 					time_SD = millis();
 
-					Serial.print(F("$$$$$------->>>> G_ND_correlation ="));
-					Serial.println(G_ND_correlation);
-					Serial.println(F(""));
+					//Serial.print(F("$$$$$------->>>> G_ND_correlation ="));
+					//Serial.println(G_ND_correlation);
+					//Serial.println(F(""));
 
 					///////////use NOTE_DETECT
 					//	if (CHOOSE_NOTE_DETECT_type == 0)
@@ -15793,13 +15815,13 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 
 						if (detected == 1)
 						{
-							Serial.print(F("*****------->>>>   detected NOTE="));
-							Serial.println(note);
-							Serial.println(F(""));
+							//Serial.print(F("*****------->>>>   detected NOTE="));
+							//Serial.println(note);
+							//Serial.println(F(""));
 
-							Serial.print(F("%%%%%------->>>> threshold="));
-							Serial.println(threshold);
-							Serial.println(F(""));
+							//Serial.print(F("%%%%%------->>>> threshold="));
+							//Serial.println(threshold);
+							//Serial.println(F(""));
 
 							//// DIMMING //////////////////////////////////////////
 							for (int i = 0; i < NUM_LEDS; ++i)  // dim all LEDs 
@@ -15952,9 +15974,9 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 								break;
 							}
 
-							Serial.print(F("P5: _________________________________________________"));
-							Serial.println(F(""));
-							Serial.println(F(""));
+							//Serial.print(F("P5: _________________________________________________"));
+							//Serial.println(F(""));
+							//Serial.println(F(""));
 
 						}
 
@@ -16120,9 +16142,9 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 
 						time_SD = millis();
 
-						Serial.print(F("$$$$$------->>>> G_ND_correlation ="));
-						Serial.println(G_ND_correlation);
-						Serial.println(F(""));
+						//Serial.print(F("$$$$$------->>>> G_ND_correlation ="));
+						//Serial.println(G_ND_correlation);
+						//Serial.println(F(""));
 
 						///////////use NOTE_DETECT
 						//	if (CHOOSE_NOTE_DETECT_type == 0)
@@ -16148,13 +16170,13 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 
 							if (detected == 1)
 							{
-								Serial.print(F("*****------->>>>   detected NOTE="));
-								Serial.println(note);
-								Serial.println(F(""));
+								//Serial.print(F("*****------->>>>   detected NOTE="));
+								//Serial.println(note);
+								//Serial.println(F(""));
 
-								Serial.print(F("%%%%%------->>>> threshold="));
-								Serial.println(threshold);
-								Serial.println(F(""));
+								//Serial.print(F("%%%%%------->>>> threshold="));
+								//Serial.println(threshold);
+								//Serial.println(F(""));
 
 								//// DIMMING //////////////////////////////////////////
 								for (int i = 0; i < NUM_LEDS; ++i)  // dim all LEDs 
@@ -16176,9 +16198,9 @@ byte PRODUCTION_5()   ////////////  musical NOTES on PIANO
 								//MERGE_LOAD(image2load, -1);   /// this generates the show
 								MERGE_LOAD(image2load, hue);   /// this generates the show
 
-								Serial.print(F("_________________________________________________"));
-								Serial.println(F(""));
-								Serial.println(F(""));
+								//Serial.print(F("_________________________________________________"));
+								//Serial.println(F(""));
+								//Serial.println(F(""));
 
 							}
 
@@ -20446,6 +20468,7 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 		{
 			//MODIFY_GUI4(8);  // set to MIC to enable
 			MIC_ON_OFF(1);
+			MODIFY_GUI4(8); // turn MIC_ON switch to on
 			G_force_sound_productions = 1;  // enable sound productions
 		}
 		else
@@ -21493,12 +21516,14 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 			GUI3();
 
+			delay(50);
+
 			/// add code to highlight SAVED lights and set the SHAPE slider and COLOR slider correctly
 			MODIFY_GUI3(1);  // set brightness
 			MODIFY_GUI3(4);  // update slider text
 			SET_HUE_COLOR_INDICATOR();
 
-
+			
 
 		}
 
@@ -21516,6 +21541,8 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 		}
 
+		UPDATE_PRODUCTION_NAME();
+
 
 		Serial.println(F(""));
 		Serial.println(F("@@@@@@@@@@ BTCH:   GUI change command"));
@@ -21525,6 +21552,8 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 		Serial.println(int(100 * G_MIC_gain));
 		Serial.print(F(" G_dim= "));
 		Serial.println(G_dim);
+		Serial.print(F(" G_production= "));
+		Serial.println(G_production);
 		Serial.println(F(""));
 
 	
@@ -22816,10 +22845,10 @@ void BLUE_TOOTH_COMMAND_HANDLER(byte allow_transfer_flag)  // check for BLUE TOO
 
 		G_production = production_save;  // necessary as RESET changes G_production
 
-		//LABEL_PRODUCTION_BUTTON();
-		SerialBT.print("*I");  // update GUI text
-		SerialBT.print(G_production);
-		SerialBT.print("*");
+		////LABEL_PRODUCTION_BUTTON();
+		//SerialBT.print("*I");  // update GUI text
+		//SerialBT.print(G_production);
+		//SerialBT.print("*");
 
 		UPDATE_PRODUCTION_NAME();
 
@@ -23623,7 +23652,7 @@ void GUI3()  // SIMPLIEST GUI
 	SerialBT.println("add_text(18,11,medium,L,PROD=,245,240,245,)");
 	SerialBT.println("add_text(19,10,medium,R,6,245,240,245,!)");
 	SerialBT.println("add_text(19,11,medium,L,1,245,240,245,I)");
-	SerialBT.println("add_text(23,12,large,L,GUI3,245,240,245,)");
+	SerialBT.println("add_text(23,12,large,L,GUI4,245,240,245,)");
 	SerialBT.println("add_text(21,5,large,L,BE HAPPY,245,240,245,)");
 	SerialBT.println("add_text(18,12,large,L,BRIGHTNESS ,245,240,245,)");
 	SerialBT.println("add_text(21,12,small,L,MAX,245,240,245,)");
@@ -24429,9 +24458,9 @@ void RESET(int skip)  // if skip=1 then don't reset brightness, if skip=2 don't 
 
 	if ((G_GUI == 3) || (G_GUI == 4))
 	{
-		SerialBT.print("*I");  // update production number
-		SerialBT.print(G_production);
-		SerialBT.print("*");
+		//SerialBT.print("*I");  // update production number
+		//SerialBT.print(G_production);
+		//SerialBT.print("*");
 
 		UPDATE_PRODUCTION_NAME();
 	}
@@ -39693,7 +39722,11 @@ void MAP_MNOTE_HUES(int hue_start, int hue_end)  // assign a HUE to each musical
 ////////////////////////////////////////////////////////////////////////
 void UPDATE_PRODUCTION_NAME()  // print the name of the production in GUI4
 {
-	if (G_GUI != 4) { return; }
+		//SPACE
+		//printD("???????????????????????????????UPDATE_PRODUCTION_NAME: G_GUI= "), G_GUI);
+		//SPACE
+	
+	if ((G_GUI != 4) && (G_GUI != 3)) { return; }
 
 	SerialBT.print("*N");  // update production name 
 
@@ -39718,9 +39751,22 @@ void UPDATE_PRODUCTION_NAME()  // print the name of the production in GUI4
 		break;
 	}
 
-
-
 	SerialBT.print("*");
+
+	//LABEL_PRODUCTION_BUTTON();
+	SerialBT.print("*I");  // update GUI text
+	SerialBT.print(G_production);
+	SerialBT.print("*");
+
+
+	SerialBT.print("*!");  // update SHOW number
+	SerialBT.print(G_show_num);
+	SerialBT.print("*");
+	
+
+	//SPACE
+	//printD("???????????????????????????????UPDATE_PRODUCTION_NAME: G_production= "), G_production);
+	//SPACE
 
 
 }
@@ -40930,6 +40976,8 @@ void BEAT_SHOW_PRODUCTION(byte come_hither_show_flag)
 	////////////////////////////////////////////  start WHILE loop  ///////////////////////////////////////////////////////////////////
 	while (millis() < start_time + BS_production_run_time)
 	{
+		MUSIC_DETECT(MUSIC_DETECTION_INTERVAL, MUSIC_DETECTION_COUNT);  // increase sampling
+		
 		// check if head is spinning with (come_hither_show_flag == 1)
 		// : note: when HEAD_COM=1 the head is not spinning or soon will not be, if HEAD_COM=0 then head is spinning
 		if ((digitalRead(HEAD_COM) == 0) && (G_FORCE_HEAD_COM < 1) && (check_head_come_once_flag == 1) && (come_hither_show_flag == 1))  // HEAD COM no longer asserted and not TESTing HEAD COM
@@ -42516,7 +42564,7 @@ void GET_VALUES() {
 
 	 //MIC_ON_OFF(1);  // turn MIC on
 
-	 G_MIC_gain = DEFAULT_MIC_gain;
+	 //G_MIC_gain = DEFAULT_MIC_gain;
 
 	 MODIFY_GUI4(10);  // display MIC gain and slider position
 
@@ -42527,9 +42575,9 @@ void GET_VALUES() {
 
 	 //if (G_GUI == 4)
 
-	 SerialBT.print("*I");  // update GUI4 text
-	 SerialBT.print(G_production);
-	 SerialBT.print("*");
+	 //SerialBT.print("*I");  // update GUI4 text
+	 //SerialBT.print(G_production);
+	 //SerialBT.print("*");
 
 	 SerialBT.print("*!");  // update GUI4 text
 	 SerialBT.print(G_show_num);
